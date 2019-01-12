@@ -1,0 +1,21 @@
+apply plugin: 'java-library'
+
+ext {
+    bintrayName = 'serial-annotation'
+    artifact = bintrayName
+    libraryName = 'Serial Annotation'
+    libraryDescription = 'The annotation used to make object to serial'
+    libraryVersion = serial_annotation_version
+}
+
+compileJava {
+    sourceCompatibility = '1.7'
+    targetCompatibility = '1.7'
+}
+
+dependencies {
+    implementation fileTree(include: ['*.jar'], dir: 'libs')
+}
+
+apply from: '../install.gradle'
+apply from: '../bintray.gradle'
