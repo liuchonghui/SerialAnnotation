@@ -1,4 +1,4 @@
-package tools.android.taskimpl.annotation;
+package tools.android.serial.annotation;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
