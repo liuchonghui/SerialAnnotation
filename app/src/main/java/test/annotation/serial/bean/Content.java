@@ -10,4 +10,11 @@ public class Content implements Serializable {
     String author_id;
     boolean crypt;
     long duration;
+    byte size;
+    short offset;
+    char point;
+    float dot;
+    double time;
+
+    Long vd;
 }

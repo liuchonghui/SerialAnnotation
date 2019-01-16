@@ -23,7 +23,6 @@ import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.Modifier;
 import javax.lang.model.element.TypeElement;
-import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.Elements;
 
@@ -36,6 +35,8 @@ public class SerialProcessor extends AbstractProcessor {
     private Filer filer;
     private Messager messager;
     private Elements elementUtils;
+    private StringBuilder comments = new StringBuilder();
+    private ClassName STRING = ClassName.get("java.lang", "String");
 
     @Override
     public synchronized void init(ProcessingEnvironment processingEnvironment) {
@@ -49,7 +50,6 @@ public class SerialProcessor extends AbstractProcessor {
     public boolean process(Set<? extends TypeElement> set, RoundEnvironment roundEnvironment) {
         Set<? extends Element> elements = roundEnvironment.getElementsAnnotatedWith(Serial.class);
         for (Element element : elements) {
-            StringBuilder comments = new StringBuilder();
             ElementKind elementKind = element.getKind();
             if (elementKind == ElementKind.CLASS) {
                 String packageName;
@@ -75,7 +75,7 @@ public class SerialProcessor extends AbstractProcessor {
                 TypeSpec classTypeSpec = classBuilder.build();
 
                 for (Element enclosedElement : element.getEnclosedElements()) {
-                    if (enclosedElement.getKind() == ElementKind.FIELD) {
+                    if (enclosedElement.getKind() == ElementKind.FIELD ) {
                         TypeMirror fieldType = enclosedElement.asType();
                         FieldName fn = new FieldName();
                         fn.orig = enclosedElement.getSimpleName().toString();
@@ -92,14 +92,14 @@ public class SerialProcessor extends AbstractProcessor {
                                 .addModifiers(Modifier.PUBLIC)
                                 .returns(void.class)
                                 .addParameter(TypeName.get(fieldType), fn.orig);
-                        String setStatement = createSetStatement(fieldType.getKind(), fn.orig);
+                        String setStatement = createSetStatement(fieldType, fn.orig);
                         setMethodBuilder.addStatement("put(\"" + fn.orig + "\", " + setStatement + ")");
 
 
                         MethodSpec.Builder getMethodBuilder = MethodSpec.methodBuilder(fn.getMethodCase)
                                 .addModifiers(Modifier.PUBLIC)
                                 .returns(TypeName.get(fieldType));
-                        String getStatement = createGetStatement(fieldType.getKind(), fn.orig);
+                        String getStatement = createGetStatement(fieldType, fn.orig);
                         getMethodBuilder.addStatement("return " + getStatement);
 
 
@@ -123,50 +123,107 @@ public class SerialProcessor extends AbstractProcessor {
         return true;
     }
 
-    private String createSetStatement(TypeKind kind, String value) {
-        switch(kind) {
-            case BOOLEAN:
-                return value + " ? \"t\" : \"f\"";
-            case BYTE:
-                return "Byte.toString(" + value + ")";
-            case SHORT:
-                return "Short.toString(" + value + ")";
-            case INT:
-                return "Integer.toString(" + value + ")";
-            case LONG:
-                return "Long.toString(" + value + ")";
-            case CHAR:
-                return "Char.toString(" + value + ")";
-            case FLOAT:
-                return "Float.toString(" + value + ")";
-            case DOUBLE:
-                return "Double.toString(" + value + ")";
-            default:
-                return value + ".toString()";
+    private String createSetStatement(TypeMirror type, String value) {
+        TypeName typeName = TypeName.get(type);
+
+        String statement = value + ".toString()";
+        if (typeName.isPrimitive()) {
+            if (typeName.equals(TypeName.BOOLEAN)) {
+                statement = value + " ? \"t\" : \"f\"";
+            } else if (typeName.equals(TypeName.BYTE)) {
+                statement = "Byte.toString(" + value + ")";
+            } else if (typeName.equals(TypeName.SHORT)) {
+                statement = "Short.toString(" + value + ")";
+            } else if (typeName.equals(TypeName.INT)) {
+                statement = "Integer.toString(" + value + ")";
+            } else if (typeName.equals(TypeName.LONG)) {
+                statement = "Long.toString(" + value + ")";
+            } else if (typeName.equals(TypeName.CHAR)) {
+                statement = "String.valueOf(" + value + ")";
+            } else if (typeName.equals(TypeName.FLOAT)) {
+                statement = "Float.toString(" + value + ")";
+            } else if (typeName.equals(TypeName.DOUBLE)) {
+                statement = "Double.toString(" + value + ")";
+            } else {
+                comments.append(">isPrimitive>" + typeName);
+            }
+        } else if (typeName.isBoxedPrimitive()) {
+            if (typeName.equals(TypeName.BOOLEAN.box())) {
+                statement = value + " ? \"t\" : \"f\"";
+            } else if (typeName.equals(TypeName.BYTE.box())) {
+                statement = "Byte.toString(" + value + ")";
+            } else if (typeName.equals(TypeName.SHORT.box())) {
+                statement = "Short.toString(" + value + ")";
+            } else if (typeName.equals(TypeName.INT.box())) {
+                statement = "Integer.toString(" + value + ")";
+            } else if (typeName.equals(TypeName.LONG.box())) {
+                statement = "Long.toString(" + value + ")";
+            } else if (typeName.equals(TypeName.CHAR.box())) {
+                statement = "String.valueOf(" + value + ")";
+            } else if (typeName.equals(TypeName.FLOAT.box())) {
+                statement = "Float.toString(" + value + ")";
+            } else if (typeName.equals(TypeName.DOUBLE.box())) {
+                statement = "Double.toString(" + value + ")";
+            } else {
+                comments.append(">isBoxedPrimitive>" + typeName);
+            }
+        } else if (TypeName.get(String.class).equals(typeName)) {
+        } else {
+            comments.append(">isUnknown>" + typeName);
         }
+        return statement;
     }
 
-    private String createGetStatement(TypeKind kind, String value) {
-        switch(kind) {
-            case BOOLEAN:
-                return "\"t\".equals(get(\"" + value + "\"))";
-            case BYTE:
-                return "Byte.valueOf(get(\"" + value + "\") == null ? \"0\" : get(\"" + value + "\"))";
-            case SHORT:
-                return "Short.valueOf(get(\"" + value + "\") == null ? \"0\" : get(\"" + value + "\"))";
-            case INT:
-                return "Integer.valueOf(get(\"" + value + "\") == null ? \"0\" : get(\"" + value + "\"))";
-            case LONG:
-                return "Long.valueOf(get(\"" + value + "\") == null ? \"0\" : get(\"" + value + "\"))";
-            case CHAR:
-                return "Char.valueOf(get(\"" + value + "\") == null ? \"0\" : get(\"" + value + "\"))";
-            case FLOAT:
-                return "Float.valueOf(get(\"" + value + "\") == null ? \"0\" : get(\"" + value + "\"))";
-            case DOUBLE:
-                return "Double.valueOf(get(\"" + value + "\") == null ? \"0\" : get(\"" + value + "\"))";
-            default:
-                return "get(\"" + value + "\")";
+    private String createGetStatement(TypeMirror type, String value) {
+        TypeName typeName = TypeName.get(type);
+
+        String statement = "get(\"" + value + "\")";
+        if (typeName.isPrimitive()) {
+            if (typeName.equals(TypeName.BOOLEAN)) {
+                statement = "\"t\".equals(get(\"" + value + "\"))";
+            } else if (typeName.equals(TypeName.BYTE)) {
+                statement = "Byte.valueOf(get(\"" + value + "\") == null ? \"0\" : get(\"" + value + "\"))";
+            } else if (typeName.equals(TypeName.SHORT)) {
+                statement = "Short.valueOf(get(\"" + value + "\") == null ? \"0\" : get(\"" + value + "\"))";
+            } else if (typeName.equals(TypeName.INT)) {
+                statement = "Integer.valueOf(get(\"" + value + "\") == null ? \"0\" : get(\"" + value + "\"))";
+            } else if (typeName.equals(TypeName.LONG)) {
+                statement = "Long.valueOf(get(\"" + value + "\") == null ? \"0\" : get(\"" + value + "\"))";
+            } else if (typeName.equals(TypeName.CHAR)) {
+                statement = "get(\"" + value + "\") == null ? null : get(\"" + value + "\").charAt(0)";
+            } else if (typeName.equals(TypeName.FLOAT)) {
+                statement = "Float.valueOf(get(\"" + value + "\") == null ? \"0\" : get(\"" + value + "\"))";
+            } else if (typeName.equals(TypeName.DOUBLE)) {
+                statement = "Double.valueOf(get(\"" + value + "\") == null ? \"0\" : get(\"" + value + "\"))";
+            } else {
+                comments.append("<isPrimitive<" + typeName);
+            }
+        } else if (typeName.isBoxedPrimitive()) {
+            if (typeName.equals(TypeName.BOOLEAN.box())) {
+                statement = "\"t\".equals(get(\"" + value + "\"))";
+            } else if (typeName.equals(TypeName.BYTE.box())) {
+                statement = "Byte.valueOf(get(\"" + value + "\") == null ? \"0\" : get(\"" + value + "\"))";
+            } else if (typeName.equals(TypeName.SHORT.box())) {
+                statement = "Short.valueOf(get(\"" + value + "\") == null ? \"0\" : get(\"" + value + "\"))";
+            } else if (typeName.equals(TypeName.INT.box())) {
+                statement = "Integer.valueOf(get(\"" + value + "\") == null ? \"0\" : get(\"" + value + "\"))";
+            } else if (typeName.equals(TypeName.LONG.box())) {
+                statement = "Long.valueOf(get(\"" + value + "\") == null ? \"0\" : get(\"" + value + "\"))";
+            } else if (typeName.equals(TypeName.CHAR.box())) {
+                statement = "get(\"" + value + "\") == null ? null : get(\"" + value + "\").charAt(0)";
+            } else if (typeName.equals(TypeName.FLOAT.box())) {
+                statement = "Float.valueOf(get(\"" + value + "\") == null ? \"0\" : get(\"" + value + "\"))";
+            } else if (typeName.equals(TypeName.DOUBLE.box())) {
+                statement = "Double.valueOf(get(\"" + value + "\") == null ? \"0\" : get(\"" + value + "\"))";
+            } else {
+                comments.append("<isBoxedPrimitive<" + typeName);
+            }
+        } else if (TypeName.get(String.class).equals(typeName)) {
+        } else {
+            comments.append("<isUnknown<" + typeName);
         }
+
+        return statement;
     }
 
     public static String toFirstUpperCase(String input) {
