@@ -5,7 +5,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
 
-import test.annotation.serial.bean.ContentSerial;
+import test.annotation.serial.entity.Ex;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -16,7 +16,7 @@ public class MainActivity extends AppCompatActivity {
         findViewById(R.id.btn).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                ContentSerial content = new ContentSerial();
+                Ex content = new Ex();
                 content.setDuration(3000L);
                 long a = content.getDuration();
                 content.setIdentify(1224);

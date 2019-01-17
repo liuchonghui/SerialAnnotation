@@ -58,6 +58,16 @@ public class SerialProcessor extends AbstractProcessor {
                 String CLASSNAME = clazzName + "Serial";
                 packageName = elementUtils.getPackageOf(element4Class).toString();
 
+                Serial annotation = element.getAnnotation(Serial.class);
+                String name = annotation.name();
+                if (name != null && name.length() > 0) {
+                    CLASSNAME = name;
+                }
+                String path = annotation.path();
+                if (path != null && path.length() > 0) {
+                    packageName = path;
+                }
+
                 ClassName hashMap = ClassName.get("java.util", "HashMap");
                 ClassName key = ClassName.get("java.lang", "String");
                 ClassName value = ClassName.get("java.lang", "String");

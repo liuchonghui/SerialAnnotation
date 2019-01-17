@@ -4,7 +4,7 @@ import java.io.Serializable;
 
 import tools.android.serial.annotation.Serial;
 
-@Serial
+@Serial(name = "Ex", path = "test.annotation.serial.entity")
 public class Content implements Serializable {
     int identify;
     String author_id;

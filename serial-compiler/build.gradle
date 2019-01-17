@@ -15,8 +15,8 @@ compileJava {
 
 dependencies {
     implementation fileTree(include: ['*.jar'], dir: 'libs')
-    api 'com.squareup:javapoet:1.9.0'
-    implementation 'tools.android:serial-annotation:0.0.1'
+    implementation 'com.squareup:javapoet:1.9.0'
+    implementation 'tools.android:serial-annotation:0.0.2'
 }
 
 apply from: '../install.gradle'
